@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Room with Movable Object</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        // Scene setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // OrbitControls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        // Load textures
+        const textureLoader = new THREE.TextureLoader();
+        const floorTexture = textureLoader.load('https://threejs.org/examples/textures/hardwood2_diffuse.jpg');
+        const wallTexture = textureLoader.load('https://threejs.org/examples/textures/brick_diffuse.jpg');
+        const ceilingTexture = textureLoader.load('https://threejs.org/examples/textures/water.jpg');
+        const mirrorTexture = textureLoader.load('https://threejs.org/examples/textures/cube/SwedishRoyalCastle/px.jpg');
+
+        // Create floor
+        const floorGeometry = new THREE.PlaneGeometry(100, 100);
+        const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        // Create walls
+        const wallMaterial = new THREE.MeshStandardMaterial({ map: wallTexture, transparent: true, opacity: 0.7 });
+        const wallGeometry = new THREE.PlaneGeometry(100, 20);
+
+        const wall1 = new THREE.Mesh(wallGeometry, wallMaterial);
+        wall1.position.set(0, 10, -50);
+        wall1.receiveShadow = true;
+        scene.add(wall1);
+
+        const wall2 = wall1.clone();
+        wall2.rotation.y = Math.PI;
+        wall2.position.set(0, 10, 50);
+        wall2.receiveShadow = true;
+        scene.add(wall2);
+
+        const wall3 = new THREE.Mesh(wallGeometry, wallMaterial);
+        wall3.rotation.y = Math.PI / 2;
+        wall3.position.set(-50, 10, 0);
+        wall3.receiveShadow = true;
+        scene.add(wall3);
+
+        const wall4 = new THREE.Mesh(wallGeometry, wallMaterial);
+        wall4.rotation.y = -Math.PI / 2;
+        wall4.position.set(50, 10, 0);
+        wall4.receiveShadow = true;
+        scene.add(wall4);
+
+        // Create mirrored wall
+        const mirrorGeometry = new THREE.PlaneGeometry(100, 20);
+        const mirrorMaterial = new THREE.MeshStandardMaterial({ map: mirrorTexture, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
+        const mirror = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
+        mirror.rotation.y = Math.PI;
+        mirror.position.set(0, 10, 0);
+        mirror.receiveShadow = true;
+        scene.add(mirror);
+
+        // Create ceiling
+        const ceilingGeometry = new THREE.PlaneGeometry(100, 100);
+        const ceilingMaterial = new THREE.MeshStandardMaterial({ map: ceilingTexture, transparent: true, opacity: 0.3 });
+        const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
+        ceiling.position.set(0, 20, 0);
+        ceiling.rotation.x = -Math.PI / 2;
+        ceiling.receiveShadow = true;
+        scene.add(ceiling);
+
+        // Create a table with four legs extending to the floor
+        const tableTopGeometry = new THREE.BoxGeometry(30, 2, 20);
+        const tableLegGeometry = new THREE.BoxGeometry(2, 10, 2);
+        const tableTopMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+        const tableSideMaterial = new THREE.MeshStandardMaterial({ map: wallTexture });
+
+        const tableTop = new THREE.Mesh(tableTopGeometry, [
+            tableTopMaterial, tableTopMaterial, 
+            tableSideMaterial, tableSideMaterial, 
+            tableSideMaterial, tableSideMaterial
+        ]);
+        tableTop.position.set(0, 12, 0);
+        tableTop.castShadow = true;
+        scene.add(tableTop);
+
+        const leg1 = new THREE.Mesh(tableLegGeometry, tableTopMaterial);
+        leg1.position.set(-13, 5, -9);
+        leg1.castShadow = true;
+        scene.add(leg1);
+
+        const leg2 = new THREE.Mesh(tableLegGeometry, tableTopMaterial);
+        leg2.position.set(13, 5, -9);
+        leg2.castShadow = true;
+        scene.add(leg2);
+
+        const leg3 = new THREE.Mesh(tableLegGeometry, tableTopMaterial);
+        leg3.position.set(-13, 5, 9);
+        leg3.castShadow = true;
+        scene.add(leg3);
+
+        const leg4 = new THREE.Mesh(tableLegGeometry, tableTopMaterial);
+        leg4.position.set(13, 5, 9);
+        leg4.castShadow = true;
+        scene.add(leg4);
+
+        // Create a cube (movable object)
+        const cubeGeometry = new THREE.BoxGeometry(5, 5, 5);
+        const cubeMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        cube.position.set(0, 2.5, 0); // Place the cube on the floor
+        cube.castShadow = true;
+        scene.add(cube);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(50, 50, 50);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 1);
+        pointLight.position.set(0, 20, 0);
+        pointLight.castShadow = true;
+        scene.add(pointLight);
+
+        // Camera settings
+        camera.position.set(0, 30, 100);
+        camera.lookAt(0, 10, 0);
+
+        // Raycaster for object picking
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let selectedObject = null;
+
+        // Update bounding boxes
+        const tableBoundingBox = new THREE.Box3().setFromObject(tableTop);
+        const cubeBoundingBox = new THREE.Box3().setFromObject(cube);
+
+        // Mouse move event
+        function onMouseMove(event) {
+            event.preventDefault();
+
+            // Calculate mouse position in normalized device coordinates
+            const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Set the direction of the mouse in 3D space
+            const mouse3D = new THREE.Vector3(mouseX, mouseY, 0.5);
+            mouse3D.unproject(camera);
+
+            // Raycast from the camera to the floor plane
+            const raycaster = new THREE.Raycaster(camera.position, mouse3D.sub(camera.position).normalize());
+            const intersects = raycaster.intersectObject(floor);
+
+            // If the ray intersects the floor, move the cube to that position
+            if (intersects.length > 0) {
+                const newPosition = intersects[0].point;
+                newPosition.y = cube.position.y; // Keep the cube at the same height
+
+                // Ensure the cube stays within the room boundaries
+                if (newPosition.x < 47.5 && newPosition.x > -47.5 && newPosition.z < 47.5 && newPosition.z > -47.5) {
+                    cube.position.copy(newPosition);
+                }
+            }
+        }
+
+        // Mouse down event
+        function onMouseDown(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects([cube]);
+
+            if (intersects.length > 0) {
+                selectedObject = intersects[0].object;
+            }
+        }
+
+        // Mouse up event
+        function onMouseUp(event) {
+            selectedObject = null;
+        }
+
+        window.addEventListener('mousemove', onMouseMove, false);
+        window.addEventListener('mousedown', onMouseDown, false);
+        window.addEventListener('mouseup', onMouseUp, false);
+
+        // Render loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
